@@ -1,0 +1,36 @@
+<html lang='en'>
+<head id="1">
+<meta id="2" charset="UTF-8" />
+<title id="3">
+Security Dashboard
+</title>
+<script>function unhidepass(id){a=document.getElementById(id);if(a.type=='password'){a.type='text';}else{a.type='password';}}</script>
+    <link id="4" rel="stylesheet" type="text/css" href="C:/Python_Files/Password_Management/Application/HTML/main.css" />
+</head>
+<body id="5" onbeforeunload="return pagereload()"><div align=right>
+<a href="http://127.0.0.1:8000/logout.html?action=page&number=1" alt="Logout" />Logout</a></div>
+<h1 id="6" class="first" align=center>
+    Security portal - Password Management
+</h1>
+<div id ="7" align=center><p id="8">
+	<span><table height=100px padding=5px><br><tr><td><p><h2>Add new user account<h2></td></tr>
+<form id="9" action="/addaccount.html" method="POST">
+<tr><td><br><label for="username">User Name </label></br><br><input id="username" type="username" name="User Name" cols="40" rows="4" required auto-complete=on/></br></td></tr>
+<tr><td><br><label for="password">Password </label></br><br><input id="11" type="password" cols="40" rows="4" name="Password" required auto-complete="off"/></br></td></tr>
+<tr><td><br><br><label for="Application-Name">Application Name</label></br><br><input id="12" type = "text" name="Application-Name" required auto-complete="on"/></br></td></tr>
+<tr><td><br><br><label for="Login-URL:">Login URL</label></br><br><input id="13" type="url" name="Login-URL" cols="40" rows="4" required auto-complete="on"/>
+</br></td></tr>
+<tr><td><br><input id="14" type="submit" onClick="pagereload();" "name="action" value="Add Account"/></br></td></tr>
+</br></form></table></p></span></div>
+<br id="15"/>
+<div style=overflow-x:Auto;>
+<table id="16" border="5px"> 
+<form id="17" action="/default.html" method="get">
+<tr id="18">
+<td id="19">ID</td>
+<td id="20">User Name</td>
+<td id= "21">Password</td>
+<td id= "22">Application-Name</td>
+<td id= "22">Login-URL</td>
+<td id="19">Delete</td> 
+</tr></br></div></table></div></form></div></body></html>
