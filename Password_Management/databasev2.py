@@ -123,7 +123,7 @@ def main():
     db1.create_table(dict(ROW_ID= "int", username= "char", password= "char", masterenc="char"))
 ##    dt=timedelta(milliseconds=1)
 ##    print(dt.total_seconds())
-    db1.insert(dict(ROW_ID = 101, username = 'user1.login@domain.com', password = 'Secure@Pass@1029', masterenc=None))
+    db1.insert(dict(ROW_ID = 101, username = 'user1.login@domain.com', password = 'Secure_Password_1234', masterenc=None))
     db1.insert(dict(ROW_ID = 102, username = 'user2@domain.com', password = 'password2', masterenc=None))
     print(db1.retrieve_rows())
     usertabledb=str()
