@@ -33,7 +33,8 @@ class CustomViews():
         self.htmlpage=dict()    
         self.htmlpage=htmlpage
         self.updateparams=updateparams
-
+	  
+	
     def customview(self):
         pageupdate1=ProcessWebpage(self.htmlpage)
         self.htmlpage["Updated"]=pageupdate1.UpdateHTMLContent(self.updateparams)
@@ -111,13 +112,14 @@ class HTTPRequestClass(http.server.BaseHTTPRequestHandler):
     currentuser=str()
     usertabledb= str()
     masterpass=str()
+    appdir=os.getcwd()
     def index(self,args):
             wfile={"Default":"","Updated":""}
-            with fileinput.input(files='C:/Python_Files/Password_Management/Application/HTML/index.html',mode='r') as input:
+            with fileinput.input(files=self.appdir+ '\\Application\\HTML\\index.html',mode='r') as input:
                 for line in input:
                     wfile["Default"]+=line
             addss=str()
-            with fileinput.input(files='C:/Python_Files/Password_Management/Application/HTML/main.css',mode='r') as input:
+            with fileinput.input(files=self.appdir + '\\Application\\HTML\\main.css',mode='r') as input:
                 for line in input:
                     addss+=line
             updateparams={"Tags": "html1-5" ,"attributename" : None, "attributevalue": None,"tagcontent": addss, "tagcontentoffset":62 , "javascript": None, "javascriptoffset":None}
@@ -133,7 +135,7 @@ class HTTPRequestClass(http.server.BaseHTTPRequestHandler):
             check=0
             requesteddata=datamodel()
             requesteddata.dataparams["datasource"]["requestquerystring"]=args
-            requesteddata.dataparams["datasource"]["database"]["databasename"]='login'
+            requesteddata.dataparams["datasource"]["database"]["databasename"]=self.appdir +'\\login'
             requesteddata.dataparams["datasource"]["database"]["tablename"]=self.usertabledb
             #requesteddata.dataparams["datasource"]["websource"]["url"]='http://127.0.0.1:8000'
             #requesteddata.dataparams["datasource"]["websource"]["parameters"][0]["Tags"]='html18-22'
@@ -175,6 +177,8 @@ class HTTPRequestClass(http.server.BaseHTTPRequestHandler):
                 try:
                     if item.split("=")[0]=="session_id":
                         for user in self.authenticateduser:
+                            if user==None:
+                                continue
                             if(self.usersession[user]["session_id"]== item.split("=")[1]):
                                 dt=datetime.today()-datetime.strptime(self.usersession[user]["last_login"],"%Y-%m-%d %H:%M:%S.%f")
                                 if dt.total_seconds()<=900:
@@ -199,10 +203,10 @@ class HTTPRequestClass(http.server.BaseHTTPRequestHandler):
                 except IndexError as e:
                     print("Error:{}".format(e))
                     usertabledbint+=item1
-            authdb=database(filename="authenticate",table="users")
+            authdb=database(filename=self.appdir+ "\\authenticate",table="users")
             authdb.connect_database()
             query= 'select * from users where username=? and password=?'
-            userauth=authdb.userauthenticate((parse.unquote(args['username']),args['password']))
+            userauth=authdb.userauthenticate((parse.unquote(args['username']),parse.unquote(args['password'])))
             try:
                 if(userauth['username']==parse.unquote(args['username'])):
                     if self.validateMaster(userauth['username']):
@@ -224,9 +228,9 @@ class HTTPRequestClass(http.server.BaseHTTPRequestHandler):
     def login_GET(self,args):
             wfile={"Default":"","Updated":""}
             cssfile=str()
-            for line in fileinput.FileInput("c:\\Python_Files\\Password_Management\\Application\\HTML\\login.html", mode='r'):
+            for line in fileinput.FileInput(self.appdir + "\\Application\\HTML\\login.html", mode='r'):
                 wfile["Default"]+=line
-            for line in fileinput.FileInput("c:\\Python_Files\\Password_Management\\Application\\HTML\\main.css", mode='r'):
+            for line in fileinput.FileInput(self.appdir + "\\Application\\HTML\\main.css", mode='r'):
                 cssfile+=line
             updateparams={"Tags": "html1-5" ,"attributename" : None, "attributevalue": None,"tagcontent": cssfile, "tagcontentoffset":47, "javascript": None, "javascriptoffset":None}
             prepareview=CustomViews(wfile,updateparams)
@@ -238,18 +242,15 @@ class HTTPRequestClass(http.server.BaseHTTPRequestHandler):
             
     def validateMaster(self,username):
         self.masterpass=getpass.getpass(prompt="Master Password: ")
-        print("Master password value:{}".format(self.masterpass))
-        masterauth=database(filename="authenticate",table="users")
+        masterauth=database(filename=self.appdir + "\\authenticate",table="users")
         masterauth.connect_database()
         queryres=masterauth.retrieve_rows()
         mastertext="This is a long string"
         for rows in queryres:
-            print(rows["username"])
             if(rows["username"]==parse.unquote(username)):
                 if(rows["masterenc"]!=None):
                     matchcount=0
                     while(matchcount<5):
-                        print("decrypted text:{}".format(str(self.DecryptCred(self.masterpass,rows["masterenc"]))[2:].strip("'")))
                         if str(self.DecryptCred(self.masterpass,rows["masterenc"]))[2:].strip("'")==mastertext:
                             return True
                         else:
@@ -265,8 +266,8 @@ class HTTPRequestClass(http.server.BaseHTTPRequestHandler):
             
     def login_POST(self,args):
             wfile=dict()
-            flogin=open("C:\Python_Files\Password_Management\Application\HTML\login.html",mode="r")
-            cssfile=open("C:\Python_Files\Password_Management\Application\HTML\main.css",mode="r")
+            flogin=open(self.appdir+ "\\Application\\HTML\\login.html",mode="r")
+            cssfile=open(self.appdir+ "\\Application\\HTML\\main.css",mode="r")
             updateparams={"Tags": "html1-5" ,"attributename" : None, "attributevalue": None,"tagcontent": cssfile.read(), "tagcontentoffset":12, "javascript": None, "javascriptoffset":None}
             wfile= {"Default": flogin.read(), "Updated": None}
             prepareview=CustomViews(wfile,updateparams)
@@ -308,7 +309,9 @@ class HTTPRequestClass(http.server.BaseHTTPRequestHandler):
                     usercookie= item.split("=")[1]
                     break
             for user in self.authenticateduser:
-                if self.usersession[user]["session_id"]==usercookie:
+                if user==None:
+                    continue
+                elif self.usersession[user]["session_id"]==usercookie:
                     self.usersession[user]={"session_id": None,"last_login": None}
                     self.authenticateduser[index]=None
                     break
@@ -335,7 +338,7 @@ class HTTPRequestClass(http.server.BaseHTTPRequestHandler):
             self.end_headers()
     def addaccount(self,args):
         ID_Max=0
-        db1 =database(filename= "C:/Python_Files/Password_Management/login", table=self.usertabledb)
+        db1 =database(filename= self.appdir+ "\\login", table=self.usertabledb)
         db1.connect_database()
         for item in db1.retrieve_rows():
             if ID_Max < item['ROW_ID']:
@@ -355,7 +358,7 @@ class HTTPRequestClass(http.server.BaseHTTPRequestHandler):
             pass
         
     def deleteaccount(self,args):
-        db1 =database(filename= "C:/Python_Files/Password_Management/login", table=self.usertabledb)
+        db1 =database(filename= self.appdir+ "\\login", table=self.usertabledb)
         db1.connect_database()
         db1.delete(args["id"])
         statuscode=302
@@ -372,7 +375,6 @@ class HTTPRequestClass(http.server.BaseHTTPRequestHandler):
         IV=(SHA256.new(bytes(keydata,encoding='UTF-8')).hexdigest())[:16]
         enckey = (SHA256.new(bytes(keydata,encoding='UTF-8')).hexdigest())[16:32]
         secobj= AES.new(bytes(enckey,encoding='UTF-8'), AES.MODE_CBC,bytes(IV,encoding='UTF-8'))
-        print(pad(bytes(plaintextmsg,encoding='UTF-8'),16))
         encpassword=secobj.encrypt(pad(bytes(plaintextmsg,encoding='UTF-8'),16))
         return encpassword
         
@@ -382,7 +384,6 @@ class HTTPRequestClass(http.server.BaseHTTPRequestHandler):
         try:
             secobj= AES.new(bytes(deckey,encoding='UTF-8'), AES.MODE_CBC, bytes(IV,encoding='UTF-8'))
             decpassword=secobj.decrypt(plaintextmsg)
-            print(str(binascii.b2a_qp(decpassword)))
             return str(binascii.b2a_qp(unpad(decpassword,16)))
         except UnicodeDecodeError as e:
             print("Unicode Error:{}".format(e))
@@ -403,6 +404,8 @@ class HTTPRequestClass(http.server.BaseHTTPRequestHandler):
             try:
                 for keyvalue in (self.path.split('?')[1].split('&')):
                     args[keyvalue.split('=')[0]]=(keyvalue.split('=')[1])
+            except IndexError as e:
+                print("Missing required parameters:{}".format(e))
             finally:
                 if(self.path.split('?')[0].strip('/')=="index.html" and self.validatesession()):
                     self.index(args)
@@ -443,8 +446,3 @@ def main():
     #requesthandler.do_GET()
     
 if __name__=="__main__":main()
-
-
-
-
-        
