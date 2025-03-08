@@ -27,21 +27,37 @@ import getpass
 import binascii
 import base64
 
-PORT =8000
+PORT =8000        
 class CustomViews():
-    def __init__(self,htmlpage,updateparams):
+    def __init__(self,htmlpage={"Default":"template1","Updated":""},updateparams=""):
         self.htmlpage=dict()    
         self.htmlpage=htmlpage
         self.updateparams=updateparams
-	  
-	
+        self.appdir=os.getcwd()
+
+    def AddForm(self,htmlform):
+        updatecontent= "<form action="+ htmlform['form']['action'] + " method=" + htmlform['form']['method']+ "><fieldset>"
+        for input in htmlform["fields"]:
+            updatecontent+="<br><label for=" + input['name'] + "></label><input type=" + input['type'] + " name=" + input['name'] + " value=''" + " placeholder=" + input['placeholder'] + " /></br>"
+        updatecontent+= "<br><input type='submit'></br></fieldset></form>"
+        self.updateparams={"Tags":"div1180-1183","tagcontentoffset":28, "tagcontent": updatecontent, "attributename":None, "attributevalue":None} 
+        return self.customview()
+  
     def customview(self):
+        if self.htmlpage["Default"].startswith("template"):
+            template=self.htmlpage["Default"]
+            self.htmlpage["Default"]=""
+            with fileinput.input(files=self.appdir + "\\Application\\HTML\\"+ template + ".html",mode="r") as input:
+                for line in input:
+                    self.htmlpage["Default"]+=line
         pageupdate1=ProcessWebpage(self.htmlpage)
-        self.htmlpage["Updated"]=pageupdate1.UpdateHTMLContent(self.updateparams)
+        self.htmlpage["Updated"]= pageupdate1.UpdateHTMLContent(self.updateparams)
+        return self.htmlpage
+        
         
 class datamodel():
     def __init__(self,**dataargs):
-        self.dataparams={"datasource":{"database":{"databasename":str(None),"tablename":str(None)},"requestquerystring":{},"websource":{"url":None,"parameters":[{"Tags":None,"attributename":None,"tagcontent":None,"tagcontentoffset":None}]}}}
+        self.dataparams={"datasource":{"database":{"databasename":str(None),"tablename":str(None)},"requestquerystring":{},"websource":{"url":None,"parameters":[{"Tags":None,"attributename":None,"tagcontent":None,"tagcontentoffset":None}]}}}	
         return
     
     def retrievedata(self):
@@ -56,8 +72,7 @@ class datamodel():
             elif keys== "database":
                 if self.dataparams["datasource"][keys]["databasename"]==None:
                     continue
-                args["Database"]=self.databaseconnect(self.dataparams["datasource"][keys]["databasename"], self.dataparams["datasource"][keys]["tablename"])
-                
+                args["Database"]=self.databaseconnect(self.dataparams["datasource"][keys]["databasename"], self.dataparams["datasource"][keys]["tablename"])  
             elif keys== "websource":
                 if self.dataparams["datasource"][keys]["url"]==None:
                     continue
@@ -113,6 +128,7 @@ class HTTPRequestClass(http.server.BaseHTTPRequestHandler):
     usertabledb= str()
     masterpass=str()
     appdir=os.getcwd()
+    dbadminpwd=str()
     def index(self,args):
             wfile={"Default":"","Updated":""}
             with fileinput.input(files=self.appdir+ '\\Application\\HTML\\index.html',mode='r') as input:
@@ -168,7 +184,7 @@ class HTTPRequestClass(http.server.BaseHTTPRequestHandler):
             self.send_header("encoding","UTF-8")
             self.send_header("Pragma","No-Cache\r\n\n"+wfile["Updated"])   
             self.end_headers()
-            dataargs={"filename": "login", "table":"users"}         
+            dataargs={"filename": "login", "table":"users"} 
 
     def validatesession(self):
         dt=timedelta()
@@ -193,7 +209,48 @@ class HTTPRequestClass(http.server.BaseHTTPRequestHandler):
         except TypeError as e:
             print("Type Error:{}".format(e))
         return False
-    
+
+    def UserRegistration(self):
+        createform=CustomViews(updateparams="")
+        customhtml=createform.AddForm({"form":{"label":"User Registration", "action":"/userregistration.html", "method":"POST"},"fields":[{"label":"User Name", "name":"username", "type":"text", "value":"","placeholder":"Email Address"},{"label":"Password", "name":"password", "type":"password", "value":"","placeholder":"Password"}]})
+        self.send_response(code= 200,message='OK')
+        self.send_header("ServerName","Server1")
+        self.send_header("encoding","UTF-8")
+        self.send_header("Pragma","No-Cache\r\n\n"+customhtml["Updated"])   
+        self.end_headers()
+
+    def UserRegistrationPost(self,args):
+        ID_Max=0
+        db1 =database(filename= self.appdir+ "\\authenticate", table="users")
+        db1.connect_database()
+        for item in db1.retrieve_rows():
+            if ID_Max < item['ROW_ID']:
+                ID_Max = item['ROW_ID']
+            if item["username"]==args["username"]:
+                UserExists=1
+                self.send_response(code= 301,message='Moved Temporarily')
+                self.send_header("ServerName","Server1")
+                self.send_header("encoding","UTF-8")
+                self.send_header("location","http://127.0.0.1:8000/userregistration.html?action=page&number=1")   
+                self.end_headers()
+        #try:
+        pwdhash=hashlib.new("SHA256")
+        pwdhash.update(bytes(parse.unquote(args['password']),encoding="UTF-8"))
+        db1.insert(dict(ROW_ID = ID_Max+1, username = parse.unquote(args['username']), password = str(pwdhash.digest()), masterenc=None))
+        #except ValueError as e:
+        #    print("Invalid value:{}".format(e))
+        #except TypeError as e:
+        #    print("Invalid value type:{}".format(e))
+        #except KeyError as e:
+        #    print("Invalid Key Name:{}".format(e))
+        #except:
+        #    print('database query Error')
+        self.send_response(code= 301,message='Moved Temporarily')
+        self.send_header("ServerName","Server1")
+        self.send_header("encoding","UTF-8")
+        self.send_header("location","http://127.0.0.1:8000/login.html?action=page&number=1")   
+        self.end_headers()
+        
     def authenticate(self, args):
             usertable=(parse.unquote(args['username'])).split('@')
             usertabledbint=str()
@@ -206,7 +263,9 @@ class HTTPRequestClass(http.server.BaseHTTPRequestHandler):
             authdb=database(filename=self.appdir+ "\\authenticate",table="users")
             authdb.connect_database()
             query= 'select * from users where username=? and password=?'
-            userauth=authdb.userauthenticate((parse.unquote(args['username']),parse.unquote(args['password'])))
+            pwdhash=hashlib.new("SHA256")
+            pwdhash.update(bytes(parse.unquote(args['password']),encoding="UTF-8"))
+            userauth=authdb.userauthenticate((parse.unquote(args['username']), str(pwdhash.digest())))
             try:
                 if(userauth['username']==parse.unquote(args['username'])):
                     if self.validateMaster(userauth['username']):
@@ -413,6 +472,8 @@ class HTTPRequestClass(http.server.BaseHTTPRequestHandler):
                     self.login_GET(args)
                 elif(self.path.split('?')[0].strip('/')=="logout.html"):
                     self.logout()
+                elif(self.path.split('?')[0].strip('/')=="userregistration.html"):
+                    self.UserRegistration()
                 elif(self.path.split('?')[0]=="/"):
                     self.default()
                 else:
@@ -437,6 +498,8 @@ class HTTPRequestClass(http.server.BaseHTTPRequestHandler):
                 self.deleteaccount(args)
             elif(self.path.split('?')[0].strip('/')=="login.html"):
                 self.login_POST(args)
+            elif(self.path.split('?')[0].strip('/')=="userregistration.html"):
+                self.UserRegistrationPost(args)
                     
 def main():
     PORT=8000
