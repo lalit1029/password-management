@@ -12,10 +12,6 @@ class ProcessWebpage:
         self.indexedhtml=dict()
 
     def SearchHTML(self):
-        db2=database(filename= "C:/Python_Files\Password_Management/Application/HTMLindexing", table="Indexpage")
-        db2.connect_database()
-        query = 'drop table if exists Indexpage'
-        db2.sql_noparam(query)
         Tagsname= "(?P<tagname>(?<=\<)\w+)"
         Tagsboundary="(<\tagname.*?[(\>)|(</\tagname>)])"
         testhtml= "<html><head><link rel='shortcut icon' href='#' /></head><body><div id=1234><p style='bold'>This is default response from server</p></div><div></div></body></html>"
